@@ -2,7 +2,10 @@ package main
 
 import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
-	// "github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/aws/aws-cdk-go/awscdk/v2/pipelines"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -11,20 +14,75 @@ type GoCdkStackProps struct {
 	awscdk.StackProps
 }
 
-func NewGoCdkStack(scope constructs.Construct, id string, props *GoCdkStackProps) awscdk.Stack {
+func NewGoCdkApplication(scope constructs.Construct, id string, props *GoCdkStackProps) awscdk.Stack {
 	var sprops awscdk.StackProps
 	if props != nil {
 		sprops = props.StackProps
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
-	// The code that defines your stack goes here
+	// create DynamoDB table
+	table := awsdynamodb.NewTable(stack, jsii.String("myUserTable"), &awsdynamodb.TableProps{
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("username"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		TableName:     jsii.String("userTable"),
+		RemovalPolicy: awscdk.RemovalPolicy_DESTROY,
+	})
 
-	// example resource
-	// queue := awssqs.NewQueue(stack, jsii.String("GoCdkQueue"), &awssqs.QueueProps{
-	// 	VisibilityTimeout: awscdk.Duration_Seconds(jsii.Number(300)),
-	// })
+	lambda := awslambda.NewFunction(stack, jsii.String("MyFunction"), &awslambda.FunctionProps{
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Handler: jsii.String("main"),
+		Code:    awslambda.Code_FromAsset(jsii.String("lambda/function.zip"), nil),
+	})
 
+	table.GrantReadWriteData(lambda)
+
+	api := awsapigateway.NewRestApi(stack, jsii.String("myWebAPI"), &awsapigateway.RestApiProps{
+		DefaultCorsPreflightOptions: &awsapigateway.CorsOptions{
+			AllowOrigins: awsapigateway.Cors_ALL_ORIGINS(),
+			AllowMethods: awsapigateway.Cors_ALL_METHODS(),
+			AllowHeaders: awsapigateway.Cors_DEFAULT_HEADERS(),
+		},
+		// DeployOptions: &awsapigateway.StageOptions{
+		// 	LoggingLevel: awsapigateway.MethodLoggingLevel_INFO,
+		// },
+	})
+
+	integration := awsapigateway.NewLambdaIntegration(lambda, nil)
+
+	// Define the routes
+	registerResource := api.Root().AddResource(jsii.String("register"), nil)
+	registerResource.AddMethod(jsii.String("POST"), integration, nil)
+
+	loginResource := api.Root().AddResource(jsii.String("login"), nil)
+	loginResource.AddMethod(jsii.String("POST"), integration, nil)
+
+	return stack
+}
+
+func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackProps) awscdk.Stack {
+	var sprops awscdk.StackProps
+	if props != nil {
+		sprops = props.StackProps
+	}
+	stack := awscdk.NewStack(scope, &id, &sprops)
+
+	repo := pipelines.CodePipelineSource_GitHub(jsii.String("adkinsar/cdk-deploy"), jsii.String("main"))
+
+	pipelines.NewCodePipeline(stack, jsii.String("User Management Pipeline"), &pipelines.CodePipelineProps{
+		PipelineName: jsii.String("User Management API"),
+		Synth: pipelines.NewCodeBuildStep(jsii.String("SynthStep"), &pipelines.CodeBuildStepProps{
+			Input: pipelines.CodePipelineSource_CodeCommit(repo, jsii.String("main"), nil),
+			Commands: jsii.Strings(
+				"npm install -g aws-cdk",
+				"goenv install 1.18.3",
+				"goenv local 1.18.3",
+				"npx cdk synth",
+			),
+		}),
+	})
 	return stack
 }
 
@@ -33,7 +91,7 @@ func main() {
 
 	app := awscdk.NewApp(nil)
 
-	NewGoCdkStack(app, "GoCdkStack", &GoCdkStackProps{
+	NewGoCdkPipeline(app, "PipelineStack", &GoCdkStackProps{
 		awscdk.StackProps{
 			Env: env(),
 		},
