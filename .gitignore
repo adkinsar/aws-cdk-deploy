@@ -18,5 +18,6 @@
 .cdk.staging
 cdk.out
 
-# build outpus
-**/*.zip
+#lambda build outputs
+lambda/bootstrap
+lambda/function.zip

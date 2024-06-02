@@ -69,20 +69,31 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
-	repo := pipelines.CodePipelineSource_GitHub(jsii.String("adkinsar/cdk-deploy"), jsii.String("main"))
+	repo := pipelines.CodePipelineSource_Connection(jsii.String("adkinsar/aws-cdk-deploy"), jsii.String("main"), &pipelines.ConnectionSourceOptions{
+		ConnectionArn: jsii.String("arn:aws:codestar-connections:us-east-2:590184108925:connection/302d5868-5e56-4752-ac01-72b083c65678"),
+	})
+
+	// Pipeline Steps
+
+	// Checkout source code
+
+	// Install dependencies - TODO figure out how to use a base image stored in ECR for build environment
+
+	// Synth my cloud formation
+
+	// Lint my templates
+
+	// Deploy my infrastructure
 
 	pipelines.NewCodePipeline(stack, jsii.String("User Management Pipeline"), &pipelines.CodePipelineProps{
 		PipelineName: jsii.String("User Management API"),
-		Synth: pipelines.NewCodeBuildStep(jsii.String("SynthStep"), &pipelines.CodeBuildStepProps{
-			Input: pipelines.CodePipelineSource_CodeCommit(repo, jsii.String("main"), nil),
-			Commands: jsii.Strings(
-				"npm install -g aws-cdk",
-				"goenv install 1.18.3",
-				"goenv local 1.18.3",
-				"npx cdk synth",
-			),
+		Synth: pipelines.NewCodeBuildStep(jsii.String("Synth"), &pipelines.CodeBuildStepProps{
+			Input:           repo,
+			InstallCommands: &[]*string{jsii.String("./install.sh")},
+			Commands:        &[]*string{jsii.String("./build.sh")},
 		}),
 	})
+
 	return stack
 }
 
