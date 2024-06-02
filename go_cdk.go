@@ -86,7 +86,7 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 	// Deploy my infrastructure
 
 	pipelines.NewCodePipeline(stack, jsii.String("User Management Pipeline"), &pipelines.CodePipelineProps{
-		PipelineName: jsii.String("User Management API"),
+		PipelineName: jsii.String("user-management-api"),
 		Synth: pipelines.NewCodeBuildStep(jsii.String("Synth"), &pipelines.CodeBuildStepProps{
 			Input:           repo,
 			InstallCommands: &[]*string{jsii.String("./install.sh")},
