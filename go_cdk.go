@@ -69,23 +69,15 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
+	// Establish connection to GitHub repostory
 	repo := pipelines.CodePipelineSource_Connection(jsii.String("adkinsar/aws-cdk-deploy"), jsii.String("main"), &pipelines.ConnectionSourceOptions{
 		ConnectionArn: jsii.String("arn:aws:codestar-connections:us-east-2:590184108925:connection/302d5868-5e56-4752-ac01-72b083c65678"),
 	})
 
 	// Pipeline Steps
 
-	// Checkout source code
-
-	// Install dependencies - TODO figure out how to use a base image stored in ECR for build environment
-
-	// Synth my cloud formation
-
-	// Lint my templates
-
-	// Deploy my infrastructure
-
-	pipelines.NewCodePipeline(stack, jsii.String("User Management Pipeline"), &pipelines.CodePipelineProps{
+	// Dowload Source Code, Install dependencies, and synthesize CDK stacks- TODO figure out how to use a base image
+	pipeline := pipelines.NewCodePipeline(stack, jsii.String("user-management-pipeline"), &pipelines.CodePipelineProps{
 		PipelineName: jsii.String("user-management-api"),
 		Synth: pipelines.NewCodeBuildStep(jsii.String("Synth"), &pipelines.CodeBuildStepProps{
 			Input:           repo,
@@ -94,7 +86,34 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 		}),
 	})
 
+	// Lint CloudFormation template
+
+	// Deploy the application stack
+	deploy := NewGoCdkPipelineDeployStage(stack, "Deploy", nil)
+	pipeline.AddStage(deploy, nil)
+
 	return stack
+}
+
+type GoCdkPipelineStage struct {
+	awscdk.StageProps
+}
+
+// This deploys the actual cloud application infrastructure
+func NewGoCdkPipelineDeployStage(scope constructs.Construct, id string, props *GoCdkPipelineStage) awscdk.Stage {
+	var sprops awscdk.StageProps
+	if props != nil {
+		sprops = props.StageProps
+	}
+	stage := awscdk.NewStage(scope, &id, &sprops)
+
+	NewGoCdkApplication(stage, "UserManagementStack", &GoCdkStackProps{
+		awscdk.StackProps{
+			Env: env(),
+		},
+	})
+
+	return stage
 }
 
 func main() {
