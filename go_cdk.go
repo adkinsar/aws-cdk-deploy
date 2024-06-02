@@ -121,7 +121,7 @@ func main() {
 
 	app := awscdk.NewApp(nil)
 
-	NewGoCdkPipeline(app, "PipelineStack", &GoCdkStackProps{
+	NewGoCdkPipeline(app, "UserManagementPipelineStack", &GoCdkStackProps{
 		awscdk.StackProps{
 			Env: env(),
 		},
