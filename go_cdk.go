@@ -98,7 +98,7 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 	environmentTeardown := pipelines.NewShellStep(jsii.String("Teardown Application"), &pipelines.ShellStepProps{
 		Input: cdkTemplates,
 		Commands: &[]*string{
-			jsii.String("npm install -f aws-cdk"),
+			jsii.String("npm install -g aws-cdk"),
 			jsii.String("cdk destroy"),
 		},
 	})
