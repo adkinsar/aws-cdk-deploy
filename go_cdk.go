@@ -100,7 +100,7 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 		InstallCommands: &[]*string{jsii.String("npm install -g aws-cdk")},
 		Commands: &[]*string{
 			jsii.String("ls -lah"),
-			jsii.String("cdk destroy UserManagementStack"),
+			jsii.String("cdk destroy --app assembly-UserManagementPipelineStack-Deploy"), // figure out reference
 		},
 	})
 	environmentTeardown.AddStepDependency(manualApproval) // manual approval required to destroy stack
