@@ -88,15 +88,20 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 
 	// Lint CloudFormation template
 
-	// Deploy the application stack
+	// Create stage for deploying the application stack
 	deploy := NewGoCdkPipelineDeployStage(stack, "Deploy", nil)
+	// Post deployment steps
+	manualApproval := pipelines.NewManualApprovalStep(jsii.String("Teardown Approval"), nil)
+	environmentTeardown := pipelines.NewShellStep(jsii.String("Teardown Application"), &pipelines.ShellStepProps{
+		Input:    repo,
+		Commands: &[]*string{jsii.String("cdk destroy")},
+	})
+	environmentTeardown.AddStepDependency(manualApproval) // manual approval required to destroy stack
+
 	pipeline.AddStage(deploy, &pipelines.AddStageOpts{
 		Post: &[]pipelines.Step{
-			pipelines.NewManualApprovalStep(jsii.String("Teardown Approval"), nil),
-			pipelines.NewShellStep(jsii.String("Teardown Application"), &pipelines.ShellStepProps{
-				Input:    repo,
-				Commands: &[]*string{jsii.String("cdk destroy")},
-			}),
+			manualApproval,
+			environmentTeardown,
 		},
 	})
 
