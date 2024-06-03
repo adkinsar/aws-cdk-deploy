@@ -106,9 +106,7 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 	environmentTeardown.AddStepDependency(manualApproval) // manual approval required to destroy stack
 
 	// There is a better way to do this most likely
-	pipeline.Pipeline().Role().AddManagedPolicy(
-		awsiam.ManagedPolicy_FromAwsManagedPolicyName(jsii.String("AdministratorAccess")),
-	)
+	pipeline.Pipeline().Role().AddManagedPolicy(awsiam.ManagedPolicy_FromAwsManagedPolicyName(jsii.String("AdministratorAccess")))
 
 	pipeline.AddStage(deploy, &pipelines.AddStageOpts{
 		Post: &[]pipelines.Step{
