@@ -99,6 +99,7 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 		Input:           cdkTemplates,
 		InstallCommands: &[]*string{jsii.String("npm install -g aws-cdk")},
 		Commands: &[]*string{
+			jsii.String("ls -lah"),
 			jsii.String("cdk destroy UserManagementStack"),
 		},
 	})
