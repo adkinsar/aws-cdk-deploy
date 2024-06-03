@@ -96,9 +96,9 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 	// Post deployment steps
 	manualApproval := pipelines.NewManualApprovalStep(jsii.String("Teardown Approval"), nil)
 	environmentTeardown := pipelines.NewShellStep(jsii.String("Teardown Application"), &pipelines.ShellStepProps{
-		Input: cdkTemplates,
+		Input:           cdkTemplates,
+		InstallCommands: &[]*string{jsii.String("npm install -g aws-cdk")},
 		Commands: &[]*string{
-			jsii.String("npm install -g aws-cdk"),
 			jsii.String("cdk destroy"),
 		},
 	})
