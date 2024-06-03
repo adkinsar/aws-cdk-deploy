@@ -90,7 +90,15 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 
 	// Deploy the application stack
 	deploy := NewGoCdkPipelineDeployStage(stack, "Deploy", nil)
-	pipeline.AddStage(deploy, nil)
+	pipeline.AddStage(deploy, &pipelines.AddStageOpts{
+		Post: &[]pipelines.Step{
+			pipelines.NewManualApprovalStep(jsii.String("Teardown Approval"), nil),
+			pipelines.NewShellStep(jsii.String("Teardown Application"), &pipelines.ShellStepProps{
+				Input:    repo,
+				Commands: &[]*string{jsii.String("cdk destroy")},
+			}),
+		},
+	})
 
 	return stack
 }
