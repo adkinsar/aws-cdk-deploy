@@ -74,27 +74,33 @@ func NewGoCdkPipeline(scope constructs.Construct, id string, props *GoCdkStackPr
 		ConnectionArn: jsii.String("arn:aws:codestar-connections:us-east-2:590184108925:connection/302d5868-5e56-4752-ac01-72b083c65678"),
 	})
 
-	// Pipeline Steps
+	// Build Stage
 
-	// Dowload Source Code, Install dependencies, and synthesize CDK stacks- TODO figure out how to use a base image
+	// Step - Dowload Source Code, Install dependencies, and synthesize CDK stacks- TODO figure out how to use a base image
+	build := pipelines.NewCodeBuildStep(jsii.String("Synth"), &pipelines.CodeBuildStepProps{
+		Input:           repo,
+		InstallCommands: &[]*string{jsii.String("./install.sh")},
+		Commands:        &[]*string{jsii.String("./build.sh")},
+	})
 	pipeline := pipelines.NewCodePipeline(stack, jsii.String("user-management-pipeline"), &pipelines.CodePipelineProps{
 		PipelineName: jsii.String("user-management-api"),
-		Synth: pipelines.NewCodeBuildStep(jsii.String("Synth"), &pipelines.CodeBuildStepProps{
-			Input:           repo,
-			InstallCommands: &[]*string{jsii.String("./install.sh")},
-			Commands:        &[]*string{jsii.String("./build.sh")},
-		}),
+		Synth:        build,
 	})
+	// Artifact from build
+	cdkTemplates := build.PrimaryOutput()
 
-	// Lint CloudFormation template
+	// Lint CloudFormation template - TODO
 
 	// Create stage for deploying the application stack
 	deploy := NewGoCdkPipelineDeployStage(stack, "Deploy", nil)
 	// Post deployment steps
 	manualApproval := pipelines.NewManualApprovalStep(jsii.String("Teardown Approval"), nil)
 	environmentTeardown := pipelines.NewShellStep(jsii.String("Teardown Application"), &pipelines.ShellStepProps{
-		Input:    repo,
-		Commands: &[]*string{jsii.String("cdk destroy")},
+		Input: cdkTemplates,
+		Commands: &[]*string{
+			jsii.String("npm install -f aws-cdk"),
+			jsii.String("cdk destroy"),
+		},
 	})
 	environmentTeardown.AddStepDependency(manualApproval) // manual approval required to destroy stack
 
